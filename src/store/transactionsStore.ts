@@ -1,55 +1,61 @@
 import { create } from "zustand";
-import { v4 as uuidv4 } from "uuid";
 import type { Transaction } from "../types/transaction";
-import { loadTransactions, saveTransactions } from "../utils/storage";
+import { apiRequest } from "../utils/api";
 
 interface TransactionsState {
   transactions: Transaction[];
   isLoaded: boolean;
-  loadForUser: (userId: string) => void;
+  loadForUser: () => Promise<void>;
   addTransaction: (
-    userId: string,
     data: Omit<Transaction, "id">
-  ) => void;
+  ) => Promise<void>;
   updateTransaction: (
-    userId: string,
     id: string,
     updates: Partial<Omit<Transaction, "id">>
-  ) => void;
-  deleteTransaction: (userId: string, id: string) => void;
+  ) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   clear: () => void;
 }
 
-export const useTransactionsStore = create<TransactionsState>((set, get) => ({
+export const useTransactionsStore = create<TransactionsState>((set) => ({
   transactions: [],
   isLoaded: false,
-  loadForUser: (userId) => {
-    const items = loadTransactions(userId);
+  loadForUser: async () => {
+    const items = await apiRequest<Transaction[]>("/transactions", {
+      method: "GET",
+      auth: true
+    });
     set({ transactions: items, isLoaded: true });
   },
-  addTransaction: (userId, data) => {
-    const tx: Transaction = { ...data, id: uuidv4() };
-    set((state) => {
-      const updated = [tx, ...state.transactions];
-      saveTransactions(userId, updated);
-      return { transactions: updated };
+  addTransaction: async (data) => {
+    const created = await apiRequest<Transaction>("/transactions", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(data)
     });
+    set((state) => ({ transactions: [created, ...state.transactions] }));
   },
-  updateTransaction: (userId, id, updates) => {
+  updateTransaction: async (id, updates) => {
+    const updatedTx = await apiRequest<Transaction>(`/transactions/${id}`, {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify(updates)
+    });
     set((state) => {
       const updated = state.transactions.map((tx) =>
-        tx.id === id ? { ...tx, ...updates } : tx
+        tx.id === id ? updatedTx : tx
       );
-      saveTransactions(userId, updated);
       return { transactions: updated };
     });
   },
-  deleteTransaction: (userId, id) => {
-    set((state) => {
-      const updated = state.transactions.filter((tx) => tx.id !== id);
-      saveTransactions(userId, updated);
-      return { transactions: updated };
+  deleteTransaction: async (id) => {
+    await apiRequest<void>(`/transactions/${id}`, {
+      method: "DELETE",
+      auth: true
     });
+    set((state) => ({
+      transactions: state.transactions.filter((tx) => tx.id !== id)
+    }));
   },
   clear: () => set({ transactions: [], isLoaded: false })
 }));

@@ -53,16 +53,22 @@ export const AddExpensePage = () => {
 
     const isoDate = new Date(values.date).toISOString();
 
-    addTransaction(currentUser.id, {
-      type: "expense",
-      amount,
-      category: values.category,
-      description: values.description,
-      date: isoDate
-    });
+    try {
+      await addTransaction({
+        type: "expense",
+        amount,
+        category: values.category,
+        description: values.description,
+        date: isoDate
+      });
 
-    showToast("success", "Расход добавлен");
-    navigate("/dashboard");
+      showToast("success", "Расход добавлен");
+      navigate("/dashboard");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Не удалось добавить расход";
+      showToast("error", message);
+    }
   };
 
   return (

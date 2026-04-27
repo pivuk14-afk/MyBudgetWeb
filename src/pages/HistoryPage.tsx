@@ -95,8 +95,17 @@ export const HistoryPage = () => {
   const handleDelete = (tx: Transaction) => {
     const confirmed = window.confirm("Удалить эту транзакцию?");
     if (!confirmed) return;
-    deleteTransaction(currentUser.id, tx.id);
-    showToast("success", "Транзакция удалена");
+    deleteTransaction(tx.id)
+      .then(() => {
+        showToast("success", "Транзакция удалена");
+      })
+      .catch((error) => {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Не удалось удалить транзакцию";
+        showToast("error", message);
+      });
   };
 
   const {
@@ -131,15 +140,23 @@ export const HistoryPage = () => {
 
     const isoDate = new Date(values.date).toISOString();
 
-    updateTransaction(currentUser.id, editingTx.id, {
-      amount,
-      description: values.description,
-      category: values.category,
-      date: isoDate
-    });
+    try {
+      await updateTransaction(editingTx.id, {
+        amount,
+        description: values.description,
+        category: values.category,
+        date: isoDate
+      });
 
-    showToast("success", "Транзакция обновлена");
-    closeEdit();
+      showToast("success", "Транзакция обновлена");
+      closeEdit();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Не удалось обновить транзакцию";
+      showToast("error", message);
+    }
   };
 
   return (

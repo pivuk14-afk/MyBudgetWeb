@@ -52,22 +52,28 @@ export const AddIncomePage = () => {
 
     const isoDate = new Date(values.date).toISOString();
 
-    addTransaction(currentUser.id, {
-      type: "income",
-      amount,
-      category: values.category,
-      description: values.source,
-      date: isoDate
-    });
+    try {
+      await addTransaction({
+        type: "income",
+        amount,
+        category: values.category,
+        description: values.source,
+        date: isoDate
+      });
 
-    showToast("success", "Доход добавлен");
-    reset({
-      amount: "",
-      source: "",
-      category: INCOME_CATEGORIES[0],
-      date: new Date().toISOString().slice(0, 10)
-    });
-    navigate("/dashboard");
+      showToast("success", "Доход добавлен");
+      reset({
+        amount: "",
+        source: "",
+        category: INCOME_CATEGORIES[0],
+        date: new Date().toISOString().slice(0, 10)
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Не удалось добавить доход";
+      showToast("error", message);
+    }
   };
 
   return (
