@@ -11,9 +11,25 @@ const authRoutes_1 = require("./routes/authRoutes");
 const transactionRoutes_1 = require("./routes/transactionRoutes");
 const app = (0, express_1.default)();
 const port = Number(process.env.PORT ?? 4000);
-const clientUrl = process.env.CLIENT_URL ?? "http://localhost:5173";
+const allowedOrigins = (process.env.CLIENT_URL ?? "http://localhost:5173")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
 app.use((0, cors_1.default)({
-    origin: clientUrl,
+    origin: (origin, callback) => {
+        // Разрешаем non-browser запросы (например healthcheck)
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        const isExplicitlyAllowed = allowedOrigins.includes(origin);
+        const isVercelPreview = /^https:\/\/.+\.vercel\.app$/.test(origin);
+        if (isExplicitlyAllowed || isVercelPreview) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true
 }));
 app.use(express_1.default.json());

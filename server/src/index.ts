@@ -7,11 +7,30 @@ import { transactionRouter } from "./routes/transactionRoutes";
 
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
-const clientUrl = process.env.CLIENT_URL ?? "http://localhost:5173";
+const allowedOrigins = (process.env.CLIENT_URL ?? "http://localhost:5173")
+  .split(",")
+  .map((v) => v.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
-    origin: clientUrl,
+    origin: (origin, callback) => {
+      // Разрешаем non-browser запросы (например healthcheck)
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const isExplicitlyAllowed = allowedOrigins.includes(origin);
+      const isVercelPreview = /^https:\/\/.+\.vercel\.app$/.test(origin);
+
+      if (isExplicitlyAllowed || isVercelPreview) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true
   })
 );
