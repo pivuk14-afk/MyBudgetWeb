@@ -50,6 +50,12 @@ app.get("/health", async (_req, res) => {
         });
     }
 });
+app.use((err, _req, res, _next) => {
+    console.error("Необработанная ошибка:", err);
+    res.status(500).json({
+        message: "Внутренняя ошибка сервера"
+    });
+});
 app.listen(port, () => {
     console.log(`API запущен: http://localhost:${port}`);
 });

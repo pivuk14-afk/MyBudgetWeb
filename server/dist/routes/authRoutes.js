@@ -18,72 +18,90 @@ const loginSchema = zod_1.z.object({
     password: zod_1.z.string().min(1, "Введите пароль")
 });
 authRouter.post("/register", async (req, res) => {
-    const parsed = registerSchema.safeParse(req.body);
-    if (!parsed.success) {
-        return res.status(400).json({ message: parsed.error.issues[0]?.message });
-    }
-    const email = parsed.data.email.toLowerCase();
-    const existing = await prisma_1.prisma.user.findUnique({ where: { email } });
-    if (existing) {
-        return res
-            .status(409)
-            .json({ message: "Пользователь с таким email уже существует" });
-    }
-    const passwordHash = await (0, auth_1.hashPassword)(parsed.data.password);
-    const user = await prisma_1.prisma.user.create({
-        data: {
-            email,
-            name: parsed.data.name,
-            passwordHash
-        },
-        select: {
-            id: true,
-            email: true,
-            name: true
+    try {
+        const parsed = registerSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ message: parsed.error.issues[0]?.message });
         }
-    });
-    const accessToken = (0, auth_1.signAccessToken)(user.id);
-    return res.status(201).json({
-        accessToken,
-        user
-    });
+        const email = parsed.data.email.toLowerCase();
+        const existing = await prisma_1.prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            return res
+                .status(409)
+                .json({ message: "Пользователь с таким email уже существует" });
+        }
+        const passwordHash = await (0, auth_1.hashPassword)(parsed.data.password);
+        const user = await prisma_1.prisma.user.create({
+            data: {
+                email,
+                name: parsed.data.name,
+                passwordHash
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true
+            }
+        });
+        const accessToken = (0, auth_1.signAccessToken)(user.id);
+        return res.status(201).json({
+            accessToken,
+            user
+        });
+    }
+    catch (error) {
+        console.error("Ошибка /auth/register:", error);
+        return res.status(500).json({ message: "Ошибка регистрации" });
+    }
 });
 authRouter.post("/login", async (req, res) => {
-    const parsed = loginSchema.safeParse(req.body);
-    if (!parsed.success) {
-        return res.status(400).json({ message: parsed.error.issues[0]?.message });
-    }
-    const email = parsed.data.email.toLowerCase();
-    const user = await prisma_1.prisma.user.findUnique({ where: { email } });
-    if (!user) {
-        return res.status(401).json({ message: "Неверный email или пароль" });
-    }
-    const isValidPassword = await (0, auth_1.comparePassword)(parsed.data.password, user.passwordHash);
-    if (!isValidPassword) {
-        return res.status(401).json({ message: "Неверный email или пароль" });
-    }
-    const accessToken = (0, auth_1.signAccessToken)(user.id);
-    return res.json({
-        accessToken,
-        user: {
-            id: user.id,
-            email: user.email,
-            name: user.name
+    try {
+        const parsed = loginSchema.safeParse(req.body);
+        if (!parsed.success) {
+            return res.status(400).json({ message: parsed.error.issues[0]?.message });
         }
-    });
+        const email = parsed.data.email.toLowerCase();
+        const user = await prisma_1.prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(401).json({ message: "Неверный email или пароль" });
+        }
+        const isValidPassword = await (0, auth_1.comparePassword)(parsed.data.password, user.passwordHash);
+        if (!isValidPassword) {
+            return res.status(401).json({ message: "Неверный email или пароль" });
+        }
+        const accessToken = (0, auth_1.signAccessToken)(user.id);
+        return res.json({
+            accessToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                name: user.name
+            }
+        });
+    }
+    catch (error) {
+        console.error("Ошибка /auth/login:", error);
+        return res.status(500).json({ message: "Ошибка входа" });
+    }
 });
 authRouter.get("/me", authMiddleware_1.authMiddleware, async (req, res) => {
-    const userId = req.userId;
-    const user = await prisma_1.prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-            id: true,
-            email: true,
-            name: true
+    try {
+        const userId = req.userId;
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { id: userId },
+            select: {
+                id: true,
+                email: true,
+                name: true
+            }
+        });
+        if (!user) {
+            return res.status(404).json({ message: "Пользователь не найден" });
         }
-    });
-    if (!user) {
-        return res.status(404).json({ message: "Пользователь не найден" });
+        return res.json(user);
     }
-    return res.json(user);
+    catch (error) {
+        console.error("Ошибка /auth/me:", error);
+        return res.status(500).json({ message: "Ошибка получения профиля" });
+    }
 });

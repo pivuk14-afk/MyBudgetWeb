@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import type { NextFunction, Request, Response } from "express";
 import { prisma } from "./prisma";
 import { authRouter } from "./routes/authRoutes";
 import { transactionRouter } from "./routes/transactionRoutes";
@@ -51,6 +52,13 @@ app.get("/health", async (_req, res) => {
       db: "disconnected"
     });
   }
+});
+
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  console.error("Необработанная ошибка:", err);
+  res.status(500).json({
+    message: "Внутренняя ошибка сервера"
+  });
 });
 
 app.listen(port, () => {
