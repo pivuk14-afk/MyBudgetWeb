@@ -1,4 +1,5 @@
 import type { Transaction } from "../types/transaction";
+import * as XLSX from "xlsx";
 
 export interface MonthlySummaryItem {
   month: number;
@@ -56,32 +57,22 @@ export const buildCategorySummary = (transactions: Transaction[]): CategorySumma
 };
 
 export const exportTransactionsToCsv = (filename: string, transactions: Transaction[]) => {
-  const header = ["Дата", "Тип", "Сумма", "Категория", "Описание"];
-  const rows = transactions.map((tx) => [
-    new Date(tx.date).toLocaleDateString("ru-RU"),
-    tx.type === "income" ? "Доход" : "Расход",
-    tx.amount.toString().replace(".", ","),
-    tx.category,
-    tx.description.replace(/"/g, '""')
-  ]);
+  const rows = transactions.map((tx) => ({
+    Дата: new Date(tx.date).toLocaleDateString("ru-RU"),
+    Тип: tx.type === "income" ? "Доход" : "Расход",
+    Сумма: tx.amount,
+    Категория: tx.category,
+    Описание: tx.description
+  }));
 
-  const csvContent =
-    [header, ...rows]
-      .map((cols) =>
-        cols
-          .map((c) => `"${c}"`)
-          .join(";")
-      )
-      .join("\r\n");
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(rows);
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Отчет");
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // XLSX гарантирует корректную кириллицу в Excel без проблем кодировки CSV.
+  const safeName = filename.toLowerCase().endsWith(".xlsx")
+    ? filename
+    : filename.replace(/\.csv$/i, ".xlsx");
+  XLSX.writeFile(workbook, safeName, { bookType: "xlsx" });
 };
 

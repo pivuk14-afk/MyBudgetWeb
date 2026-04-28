@@ -93,9 +93,9 @@ export const ReportsPage = () => {
 
     const monthPart =
       monthNumber != null ? `-${monthNumber.toString().padStart(2, "0")}` : "";
-    const filename = `mybudget-report-${selectedYear}${monthPart}.csv`;
+    const filename = `mybudget-report-${selectedYear}${monthPart}.xlsx`;
     exportTransactionsToCsv(filename, filtered);
-    showToast("success", "Отчёт экспортирован в CSV");
+    showToast("success", "Отчёт экспортирован в Excel");
   };
 
   return (
@@ -138,7 +138,7 @@ export const ReportsPage = () => {
 
           <div className="flex items-end">
             <Button type="button" fullWidth onClick={handleExport}>
-              Экспорт CSV
+              Экспорт Excel
             </Button>
           </div>
         </div>
