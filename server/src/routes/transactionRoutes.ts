@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../prisma";
+import { computeBalance, EPS } from "../lib/balance";
 import {
   AuthenticatedRequest,
   authMiddleware
@@ -49,6 +50,22 @@ transactionRouter.post("/", async (req: AuthenticatedRequest, res) => {
   const userId = req.userId!;
   const payload = parsed.data;
 
+  if (payload.type === "expense") {
+    const userTxs = await prisma.transaction.findMany({
+      where: { userId },
+      select: { type: true, amount: true }
+    });
+    const balance = computeBalance(
+      userTxs.map((t) => ({ type: t.type, amount: Number(t.amount) }))
+    );
+    if (balance - payload.amount < -EPS) {
+      return res.status(400).json({
+        message:
+          "Недостаточно средств: расход превышает текущий баланс. Уменьшите сумму или добавьте доход."
+      });
+    }
+  }
+
   const created = await prisma.transaction.create({
     data: {
       userId,
@@ -83,6 +100,33 @@ transactionRouter.put("/:id", async (req: AuthenticatedRequest, res) => {
   }
 
   const data = parsed.data;
+
+  const nextType = (data.type ?? existing.type) as "income" | "expense";
+  const nextAmount =
+    typeof data.amount === "number"
+      ? data.amount
+      : Number(existing.amount);
+
+  const allForUser = await prisma.transaction.findMany({
+    where: { userId },
+    select: { id: true, type: true, amount: true }
+  });
+
+  const projected = allForUser.map((t) => {
+    if (t.id !== id) {
+      return { type: t.type, amount: Number(t.amount) };
+    }
+    return { type: nextType, amount: nextAmount };
+  });
+
+  const projectedBalance = computeBalance(projected);
+  if (projectedBalance < -EPS) {
+    return res.status(400).json({
+      message:
+        "Недостаточно средств: после изменения баланс стал бы отрицательным. Уменьшите расход или добавьте доход."
+    });
+  }
+
   const updated = await prisma.transaction.update({
     where: { id },
     data: {
