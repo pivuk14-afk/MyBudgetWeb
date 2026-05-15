@@ -48,7 +48,7 @@ export const LoginPage = () => {
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg">
         <div className="mb-6 text-center">
           <h1 className="text-lg font-semibold text-slate-900">
-            Вход в MyBudget Web
+            Вход
           </h1>
           <p className="mt-1 text-xs text-slate-500">
             Введите данные аккаунта, чтобы продолжить

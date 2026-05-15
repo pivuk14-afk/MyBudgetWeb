@@ -22,9 +22,6 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
           </button>
           <div>
             <div className="text-sm font-semibold tracking-tight text-primary">
-              MyBudget Web
-            </div>
-            <div className="text-xs text-slate-500">
               Личный учёт доходов и расходов
             </div>
           </div>

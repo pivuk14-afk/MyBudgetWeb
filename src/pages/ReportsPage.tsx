@@ -93,7 +93,7 @@ export const ReportsPage = () => {
 
     const monthPart =
       monthNumber != null ? `-${monthNumber.toString().padStart(2, "0")}` : "";
-    const filename = `mybudget-report-${selectedYear}${monthPart}.xlsx`;
+    const filename = `uchet-dohodov-rashodov-${selectedYear}${monthPart}.xlsx`;
     exportTransactionsToCsv(filename, filtered);
     showToast("success", "Отчёт экспортирован в Excel");
   };
